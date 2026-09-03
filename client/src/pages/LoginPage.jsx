@@ -7,13 +7,21 @@ export function LoginPage({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [nricError, setNricError] = useState("");
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setBusy(true);
     setError("");
+    const workshopId = nric.trim().toUpperCase();
+    // Format check only: workshop IDs are fictional, with no real checksum check.
+    if (!/^[STFGM]\d{7}[A-Z]$/.test(workshopId)) {
+      setNricError("Enter a workshop ID such as S0000001A (S, T, F, G, or M; 7 digits; then a letter).");
+      return;
+    }
+    setNricError("");
+    setBusy(true);
     try {
-      const session = await login({ nric, password, role });
+      const session = await login({ nric: workshopId, password, role });
       onLogin(session);
     } catch (requestError) {
       setError(requestError.message);
@@ -44,8 +52,18 @@ export function LoginPage({ onLogin }) {
           </div>
           <form onSubmit={handleSubmit}>
             <label>NRIC
-              <input value={nric} onChange={(event) => setNric(event.target.value)} placeholder="e.g. S0000001A" />
+              <input
+                value={nric}
+                onChange={(event) => {
+                  setNric(event.target.value);
+                  setNricError("");
+                }}
+                aria-invalid={Boolean(nricError)}
+                aria-describedby={nricError ? "nric-error" : undefined}
+                placeholder="e.g. S0000001A"
+              />
             </label>
+            {nricError && <p id="nric-error" className="error-message" role="alert">{nricError}</p>}
             <label>Password
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" />
             </label>
